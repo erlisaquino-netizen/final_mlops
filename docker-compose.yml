@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.2
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./registry:/mlflow_registry
+    command: mlflow server --backend-store-uri sqlite:///mlflow_registry/mlflow.db --default-artifact-root file:///mlflow_registry/artifacts --host 0.0.0.0 --port 5000
+
+  airflow-webserver:
+    build: .
+    user: "0:0"
+    restart: always
+    depends_on:
+      - postgres
+      - mlflow
+    environment:
+      - LOAD_EXHAUSTIVE_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__WEBSERVER__SECRET_KEY=clave_secreta_compartida_mlops
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - PYTHONPATH=/opt/airflow
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./raw_data:/opt/airflow/raw_data
+      - ./registry:/mlflow_registry  # 👈 CORREGIDO: Mapeado a /mlflow_registry
+    command: >
+      bash -c "airflow db migrate &&
+      (airflow users create --username admin --firstname Admin --lastname Admin --role Admin --email admin@example.com --password admin || true) &&
+      airflow webserver"
+
+  airflow-scheduler:
+    build: . 
+    user: "0:0"
+    restart: always
+    depends_on:
+      - postgres
+      - mlflow
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__WEBSERVER__SECRET_KEY=clave_secreta_compartida_mlops
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - PYTHONPATH=/opt/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./raw_data:/opt/airflow/raw_data
+      - ./registry:/mlflow_registry  # 👈 CORREGIDO: Mapeado a /mlflow_registry
+    command: bash -c "airflow db migrate && airflow scheduler"
+
+volumes:
+  postgres_data:  
