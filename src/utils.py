@@ -23,4 +23,7 @@ def send_alert(message: str, alert_type: str = "DRIFT_ALERT"):
     
     alert_file = os.path.join(MONITORING_ALERTS_DIR, f"alert_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
     with open(alert_file, "w") as f:
-        json.dump(alert_payload, f, indent=4) 
+        json.dump(alert_payload, f, indent=4) }
+
+
+---SDWDW
