@@ -17,4 +17,4 @@ def test_preprocess_generates_outputs():
     
     df_m2 = pd.read_csv(train_m2_path)
     # Validamos que todos los targets asignados en M2 sean válidos (exclusión de target_venta == 0)
-    assert 'target_copamiento' in df_m2.columns  
+    assert 'target_copamiento' in df_m2.columns   

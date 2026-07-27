@@ -68,3 +68,30 @@ Salvedad (cold start): el flujo asume que ya existe un modelo. El modelo inicial
 manual del README; de ahí en adelante el DAG solo reentrena por drift. 
 
 
+
+//
+
+-- CORRECCIONES REALIZADAS
+
+Flujo corregido: preprocesar → inferir → monitorear_drift (regla) → reentrenar. Es el ciclo de monitoreo correcto.
+
+Por qué el orden es el adecuado: la inferencia va antes del ShortCircuit, así que corre en todos los ciclos
+(haya drift o no); el reentrenamiento va después, así que es el único paso condicional, gobernado por la
+regla drift ≥ 15%.
+  
+Salvedad (cold start): el flujo asume que ya existe un modelo. El modelo inicial se entrena en la corrida 
+manual del README; de ahí en adelante el DAG solo reentrena por drift. 
+
+
+
+pipeline_inferencia (@monthly)
+        └─► pipeline_monitoreo  (regla de drift)
+                    └─► [solo si hay drift] ─► pipeline_entrenamiento
+
+
+Por qué esto responde a la observación: cada pipeline tiene una sola responsabilidad, se pueden ejecutar
+ y fallar de forma independiente, tienen frecuencias distintas (inferir es recurrente, entrenar es 
+ esporádico), y el monitoreo orquesta el entrenamiento en lugar de contenerlo. Ese es el patrón
+  canónico entrenamiento / inferencia / monitoreo.
+
+
