@@ -23,7 +23,7 @@ def check_drift_and_alerts():
     train_path = os.path.join(DATA_PROCESSED_DIR, "train_m1.csv")
     if not os.path.exists(train_path):
         logger.error(f"No se encontró el set de entrenamiento en {train_path}. Abortando monitoreo.")
-        return
+        return False
     
     df_ref = pd.read_csv(train_path)
     # Excluir la columna target si existe
@@ -33,7 +33,7 @@ def check_drift_and_alerts():
     prod_file = os.path.join(DATA_RAW_DIR, INFERENCE_PERIODS[-1]) # p12_extrac.csv
     if not os.path.exists(prod_file):
         logger.error(f"No se encontró el archivo de producción en {prod_file}. Abortando monitoreo.")
-        return
+        return False
         
     df_prod = pd.read_csv(prod_file)
     
@@ -123,9 +123,11 @@ def check_drift_and_alerts():
     
     with open(html_report_path, "w", encoding="utf-8") as f:
         f.write(html_content)
- 
-    """ 
-    # 6. Guardar Alerta de Re-entrenamiento si más del 30% de variables tienen drift
+
+    # 6. Regla de decisión de re-entrenamiento:
+    #    Se calcula el porcentaje de variables con drift y se compara contra el
+    #    umbral tolerado (DRIFT_THRESHOLD). El valor devuelto es lo que el
+    #    ShortCircuitOperator usa para decidir si se entrena o no.
     drift_ratio = drift_detected_count / len(features)
     if drift_ratio >= DRIFT_THRESHOLD:
         alert_msg = f"ALERTA: Se detectó Data Drift en el {drift_ratio*100:.2f}% de las variables. Se sugiere re-entrenamiento."
@@ -133,25 +135,10 @@ def check_drift_and_alerts():
         with open(alert_path, "w") as f:
             f.write(alert_msg)
         logger.warning(alert_msg)
+        return True  # Supera el umbral -> el ShortCircuitOperator activa el re-entrenamiento
     else:
         logger.info("Estabilidad de datos óptima. Sin alertas de drift activadas.")
-    """ 
-  
-
-
-
-    # 6. Guardar Alerta de Re-entrenamiento si más del 30% de variables tienen drift
-    drift_ratio = drift_detected_count / len(features)
-    if drift_ratio >= DRIFT_THRESHOLD:
-        alert_msg = f"ALERTA: Se detectó Data Drift en el {drift_ratio*100:.2f}% de las variables. Se sugiere re-entrenamiento."
-        alert_path = os.path.join(MONITORING_ALERTS_DIR, "drift_alert.txt")
-        with open(alert_path, "w") as f:
-            f.write(alert_msg)
-        logger.warning(alert_msg)
-        return True  # Permite que el ShortCircuitOperator active el re-entrenamiento
-    else:
-        logger.info("Estabilidad de datos óptima. Sin alertas de drift activadas.")
-        return False # Interrumpe el flujo para evitar un re-entrenamiento innecesario
+        return False  # No supera el umbral -> se interrumpe el flujo y NO se re-entrena
 
     
 
