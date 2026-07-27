@@ -1,3 +1,4 @@
+#"correcciones realizadas"
 from airflow import DAG
 from airflow.operators.python import PythonOperator, ShortCircuitOperator
 from datetime import datetime, timedelta
@@ -31,11 +32,6 @@ with DAG(
         python_callable=clean_and_prepare_data,
     )
 
-    task_train = PythonOperator(
-        task_id='entrenar_y_comparar_modelos',
-        python_callable=train_models,
-    )
-
     task_inference = PythonOperator(
         task_id='inferencias_meses_produccion',
         python_callable=run_inference,
@@ -52,4 +48,6 @@ with DAG(
         python_callable=train_models,
     )
 
-    task_preprocess >> task_train >> task_inference >> task_check_drift >> task_retrain  
+    # El entrenamiento queda DESPUÉS del ShortCircuit: solo se ejecuta si la regla
+    # de drift devuelve True. Ya no hay entrenamiento incondicional previo.
+    task_preprocess >> task_inference >> task_check_drift >> task_retrain
