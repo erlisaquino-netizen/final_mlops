@@ -53,3 +53,18 @@ PUNTOS DE INNOVACIÓN INCORPORADOS (Para sustentación de nota máxima):
 --http://localhost:8080/
 
 --docker compose exec -u airflow airflow-scheduler python /opt/airflow/src/predict.py
+
+
+
+-- CORRECCIONES REALIZADAS
+
+Flujo corregido: preprocesar → inferir → monitorear_drift (regla) → reentrenar. Es el ciclo de monitoreo correcto.
+
+Por qué el orden es el adecuado: la inferencia va antes del ShortCircuit, así que corre en todos los ciclos
+(haya drift o no); el reentrenamiento va después, así que es el único paso condicional, gobernado por la
+regla drift ≥ 15%.
+  
+Salvedad (cold start): el flujo asume que ya existe un modelo. El modelo inicial se entrena en la corrida 
+manual del README; de ahí en adelante el DAG solo reentrena por drift. 
+
+
