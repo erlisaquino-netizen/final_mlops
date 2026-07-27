@@ -1,3 +1,5 @@
+
+"con modificacion sugerida"
 import pandas as pd
 import numpy as np
 import os
@@ -7,7 +9,7 @@ from src.config import (
     MONITORING_ALERTS_DIR, INFERENCE_PERIODS, DRIFT_THRESHOLD
 )
 from src.utils import logger
-
+ 
 def check_drift_and_alerts():
     """
     Compara las distribuciones de las características de producción (p10-p12)
